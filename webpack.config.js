@@ -1,6 +1,7 @@
 const path = require('path');
 module.exports = {
   "mode": "none",
+  "target": "web",
   "entry": "./src/scripts.js",
   "output": {
     "path": __dirname + '/dist',
