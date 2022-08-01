@@ -42,7 +42,7 @@ fetchData().then(responses => {
 
     displayRecipeList();
 
-}).catch(err => recipeDisplay.innerHTML = (`<h1>${err}</h1>`));
+}).catch(err => recipeDisplay.innerHTML = (`<h1>Sorry! Our server is currently offline.</h1>`));
 
 recipeDisplay.addEventListener('click', recipeDisplayHandler);
 homeButton.addEventListener('click', goHome);
@@ -122,16 +122,7 @@ function addIngredientsToPantry(id) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(post)
     })
-    .then(response => {
-      console.log("POST response:", response)
-      if (!response.ok) {
-        //throw an error to trigger my catch
-        throw new Error('did i do it? is this an error??')
-      } else {
-        // Means the response is good.
-        return response.json()
-      }
-    })
+    .then(response => response.json())
     .then(() => {
       if (index === (postObjs.length - 1)) {
         getAllData('users')
@@ -147,10 +138,6 @@ function addIngredientsToPantry(id) {
         })
       }
     })
-    .catch(error => {
-      console.log('i got into the catch!');
-      console.log('Error label: ', error.message)
-    })
   })
 };
 
@@ -164,12 +151,12 @@ function makePostObj(userID, ingredientID, ingredientMod) {
 
 function removeIngredientsFromPantry(id) {
     const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === parseInt(id));
-    
+
     // Use the selected recipe to make an array of objects that have the id and amount of ingredient
-    
+
     const ingredientIdsAndAmounts = selectedRecipe.ingredients.map(ingredient => {
         return {ingredientId: ingredient.id, ingredientAmount: ingredient.quantity.amount * -1}
-    }) 
+    })
     // Make the POST objects
     const postObjs = ingredientIdsAndAmounts.map(ingredientIdAndAmount => {
         return makePostObj(user.id, ingredientIdAndAmount.ingredientId, ingredientIdAndAmount.ingredientAmount)
@@ -185,7 +172,7 @@ function removeIngredientsFromPantry(id) {
         .then(() => {
             if (index === (postObjs.length - 1)) {
                 getAllData('users')
-                    .then(data => { 
+                    .then(data => {
                         userInfo = data
                         const newUser = new User(userInfo.find(freshUser => freshUser.id === user.id));
                         user.pantry = newUser.pantry;
@@ -209,7 +196,7 @@ function recipeDisplayHandler(event) {
     } else if (event.target.getAttribute("data-selectedRecipe")) {
         addIngredientsToPantry(event.target.getAttribute("data-selectedRecipe"));
     } else if (event.target.getAttribute("data-cookRecipe")) {
-        // Add another condition for the cook button 
+        // Add another condition for the cook button
         removeIngredientsFromPantry(event.target.getAttribute("data-cookRecipe"));
     }
 }
