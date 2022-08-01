@@ -38,7 +38,6 @@ fetchData().then(responses => {
 
     recipeRepository.listRecipes();
     user = createUser();
-    console.log(user.pantry);
 
     displayRecipeList();
 
@@ -60,48 +59,45 @@ function hideOn(elements) {
 }
 
 function hideOff(elements) {
-    elements.forEach((element) => {
-        element.classList.remove('hidden')
- })
+  elements.forEach((element) => {
+    element.classList.remove('hidden')
+  })
 }
 
 
 function createUser() {
-    const randomNumber = Math.floor(Math.random() * userInfo.length);
-    const user = userInfo[randomNumber];
-    return new User(user);
+  const randomNumber = Math.floor(Math.random() * userInfo.length);
+  const user = userInfo[randomNumber];
+  return new User(user);
 }
 
 function showMyPantry() {
-    hideOff([homeButton]);
-    hideOn([searchForm, filterForm, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel,  searchLabel, filterLabel, pantryButton]);
-    const pantryWithNames = findExistingPantryIngredients();
-    recipeHeading.innerText = 'My Pantry';
-    recipeDisplay.innerHTML = ""
-    pantryWithNames.forEach((ingredient) => {
-    recipeDisplay.innerHTML += (`
+  hideOff([homeButton]);
+  hideOn([searchForm, filterForm, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel,  searchLabel, filterLabel, pantryButton]);
+  const pantryWithNames = findExistingPantryIngredients();
+  recipeHeading.innerText = 'My Pantry';
+  recipeDisplay.innerHTML = ""
+  pantryWithNames.forEach((ingredient) => {
+  recipeDisplay.innerHTML += (`
         <div class="ingredient-card" id=${ingredient.id}>
             <p>Name: ${ingredient.name}</p>
             <p>Amount: ${ingredient.amount}</p>
         </div>
       `)
-    }
-    )
+    })
 }
 
 function findExistingPantryIngredients() {
-    const pantryIngredients = user.pantry.ingredients.map(ingredient => {
-        ingredientsInfo.forEach(ingredientInfo => {
-            if (ingredientInfo.id === ingredient.ingredient) {
-                ingredientInfo.amount = ingredient.amount
-                ingredient = ingredientInfo;
-            }
-        });
-
-        return ingredient;
+  const pantryIngredients = user.pantry.ingredients.map(ingredient => {
+    ingredientsInfo.forEach(ingredientInfo => {
+      if (ingredientInfo.id === ingredient.ingredient) {
+        ingredientInfo.amount = ingredient.amount
+        ingredient = ingredientInfo;
+      }
     });
-
-    return pantryIngredients;
+    return ingredient;
+  });
+  return pantryIngredients;
 }
 
 function addIngredientsToPantry(id) {
@@ -113,9 +109,6 @@ function addIngredientsToPantry(id) {
   const postObjs = ingredientIdsAndAmounts.map(ingredientIdAndAmount => {
     return makePostObj(user.id, ingredientIdAndAmount.ingredientId, ingredientIdAndAmount.ingredientAmount)
   })
-  // Using our array of formated object for the POST request, we make a post reqquest as a call back function so
-  // can include a .then() that only runs when we are at the last POST request. We do this by creating a conditon
-  // that will only run when we get to the iteration index that is equal to the length of the array minus one.
   postObjs.forEach((post, index) => {
     fetch('http://localhost:3001/api/v1/users', {
       method: 'POST',
@@ -126,11 +119,9 @@ function addIngredientsToPantry(id) {
       if (index === (postObjs.length - 1)) {
         getAllData('users')
         .then(data => {
-          console.log('hello');
           userInfo = data
           const newUser = new User(userInfo.find(freshUser => freshUser.id === user.id));
           user.pantry.ingredients = newUser.pantry.ingredients;
-          console.log("Pantry", user.pantry);
           document.querySelector("#pantryFeedback").innerHTML = '';
           showIngredientsNeeded(selectedRecipe);
           document.querySelector('#addToPantry').classList.add('hidden');
@@ -149,39 +140,32 @@ function makePostObj(userID, ingredientID, ingredientMod) {
 };
 
 function removeIngredientsFromPantry(id) {
-    const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === parseInt(id));
-
-    // Use the selected recipe to make an array of objects that have the id and amount of ingredient
-
-    const ingredientIdsAndAmounts = selectedRecipe.ingredients.map(ingredient => {
-        return {ingredientId: ingredient.id, ingredientAmount: ingredient.quantity.amount * -1}
+  const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === parseInt(id));
+  const ingredientIdsAndAmounts = selectedRecipe.ingredients.map(ingredient => {
+    return {ingredientId: ingredient.id, ingredientAmount: ingredient.quantity.amount * -1}
+  })
+  const postObjs = ingredientIdsAndAmounts.map(ingredientIdAndAmount => {
+    return makePostObj(user.id, ingredientIdAndAmount.ingredientId, ingredientIdAndAmount.ingredientAmount)
+  })
+  postObjs.forEach((post, index) => {
+    fetch('http://localhost:3001/api/v1/users', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(post)
     })
-    // Make the POST objects
-    const postObjs = ingredientIdsAndAmounts.map(ingredientIdAndAmount => {
-        return makePostObj(user.id, ingredientIdAndAmount.ingredientId, ingredientIdAndAmount.ingredientAmount)
-    })
-
-    postObjs.forEach((post, index) => {
-        fetch('http://localhost:3001/api/v1/users', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(post)
+    .then(() => {
+      if (index === (postObjs.length - 1)) {
+        getAllData('users')
+        .then(data => {
+          userInfo = data
+          const newUser = new User(userInfo.find(freshUser => freshUser.id === user.id));
+          user.pantry = newUser.pantry;
+          document.querySelector("#pantryFeedback").innerHTML = '';
+          showIngredientsNeeded(selectedRecipe);
         })
-        .then(response => console.log(response))
-        .then(() => {
-            if (index === (postObjs.length - 1)) {
-                getAllData('users')
-                    .then(data => {
-                        userInfo = data
-                        const newUser = new User(userInfo.find(freshUser => freshUser.id === user.id));
-                        user.pantry = newUser.pantry;
-                        document.querySelector("#pantryFeedback").innerHTML = '';
-                        showIngredientsNeeded(selectedRecipe);
-                    })
-            }
-        })
+      }
     })
-
+  })
 }
 
 function recipeDisplayHandler(event) {
@@ -195,7 +179,6 @@ function recipeDisplayHandler(event) {
     } else if (event.target.getAttribute("data-selectedRecipe")) {
         addIngredientsToPantry(event.target.getAttribute("data-selectedRecipe"));
     } else if (event.target.getAttribute("data-cookRecipe")) {
-        // Add another condition for the cook button
         removeIngredientsFromPantry(event.target.getAttribute("data-cookRecipe"));
     }
 }
@@ -212,70 +195,65 @@ function addToFavorite(event) {
     user.addRecipesToCook(selectedRecipe);
 
     if (event.target.getAttribute("data-instructionDisplay")) {
-        showIngredientsNeeded(selectedRecipe);
+      showIngredientsNeeded(selectedRecipe);
     }
 }
 
 function showIngredientsNeeded(selectedRecipe) {
-    if (user.recipesToCook.includes(selectedRecipe)) {
-            const answer = user.pantry.checkIfCanMakeRecipe(selectedRecipe);
-            if (answer) {
-                // Add button for cooking a recipie, needs new data atribute with selected recipe ID
-                document.querySelector("#pantryFeedback").innerHTML += `<p> You have enough ingredients! <button class="favorite-button" id="cookRecipe" data-cookRecipe="${selectedRecipe.id}">Cook Recipe</button></p>`;
-            } else {
-                const usersNeededIngredients = user.pantry.getNeededIngredients(selectedRecipe);
-                const neededIngredients = usersNeededIngredients.map((pantryIngredient) => {
-                    ingredientsInfo.forEach((ingredient) => {
-                        if (pantryIngredient.id === ingredient.id) {
-
-                            pantryIngredient.name = ingredient.name;
-
-                        }
-                    })
-                return pantryIngredient;
-            })
-
-            document.getElementById(selectedRecipe.id).innerHTML += `<button class="favorite-button" id="addToPantry" data-selectedRecipe=${selectedRecipe.id}>Add to Pantry</button>`
-            document.querySelector("#pantryFeedback").innerHTML += `<p class="ingredients-feedback"> You don't have enough ingredients! This is what you need. Read below:</p>
-                                                                        <ul id="neededIngredients"></ul>`
-
-            neededIngredients.forEach((neededIngredient) => {
-                document.querySelector("#neededIngredients").innerHTML +=
-                    `<li>${neededIngredient.name}, ${neededIngredient.quantity.amount} ${neededIngredient.quantity.unit}</li>`
-            })
-        }
+  if (user.recipesToCook.includes(selectedRecipe)) {
+    const answer = user.pantry.checkIfCanMakeRecipe(selectedRecipe);
+    if (answer) {
+      document.querySelector("#pantryFeedback").innerHTML +=
+      `<p> You have enough ingredients!<button class="favorite-button" id="cookRecipe" data-cookRecipe="${selectedRecipe.id}">Cook Recipe</button></p>`;
+    } else {
+      const usersNeededIngredients = user.pantry.getNeededIngredients(selectedRecipe);
+      const neededIngredients = usersNeededIngredients.map((pantryIngredient) => {
+        ingredientsInfo.forEach((ingredient) => {
+          if (pantryIngredient.id === ingredient.id) {
+            pantryIngredient.name = ingredient.name;
+          }
+        })
+        return pantryIngredient;
+      })
+      document.getElementById(selectedRecipe.id).innerHTML +=
+      `<button class="favorite-button" id="addToPantry" data-selectedRecipe=${selectedRecipe.id}>Add to Pantry</button>`
+      document.querySelector("#pantryFeedback").innerHTML +=
+      `<p class="ingredients-feedback"> You don't have enough ingredients! This is what you need. Read below:</p><ul id="neededIngredients"></ul>`
+      neededIngredients.forEach((neededIngredient) => {
+        document.querySelector("#neededIngredients").innerHTML +=
+        `<li>${neededIngredient.name}, ${neededIngredient.quantity.amount} ${neededIngredient.quantity.unit}</li>`
+      })
     }
+  }
 }
 
 function showFavorites() {
-    hideOn([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
-    hideOff([filterFavoriteForm, favSearchForm, homeButton, favSearchLabel, filterFavoriteLabel]);
+  hideOn([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
+  hideOff([filterFavoriteForm, favSearchForm, homeButton, favSearchLabel, filterFavoriteLabel]);
 
-
-    homeButton.classList.remove('hidden');
-    homeButton.classList.add('favorite');
-    recipeHeading.innerText = 'Favorite Recipes';
-    recipeDisplay.innerHTML = "";
-    user.recipesToCook.forEach((recipe) => {
-        recipeDisplay.innerHTML += (`
-            <div class="recipe-image-wrapper" id=${recipe.id}>
+  homeButton.classList.remove('hidden');
+  homeButton.classList.add('favorite');
+  recipeHeading.innerText = 'Favorite Recipes';
+  recipeDisplay.innerHTML = "";
+  user.recipesToCook.forEach((recipe) => {
+    recipeDisplay.innerHTML += (`
+      <div class="recipe-image-wrapper" id=${recipe.id}>
             <button class="recipe-img-btn">
                 <img class="recipe-image" data-recipeId=${recipe.id} src=${recipe.image} alt="View ${recipe.name} instructions">
             </button>
                 <p class="recipe-name">${recipe.name}</p>
                 <button class="favorite-button" data-favoriteRecipe=${recipe.id}>Remove</button>
-            </div>
+      </div>
         `)
     });
 };
 
 function displayRecipeList() {
-    hideOff([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
-    hideOn([homeButton, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel]);
+  hideOff([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
+  hideOn([homeButton, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel]);
 
-
-    recipeDisplay.innerHTML = "";
-    recipeRepository.recipeList.forEach((recipe) => {
+  recipeDisplay.innerHTML = "";
+  recipeRepository.recipeList.forEach((recipe) => {
     recipeDisplay.innerHTML += (`
         <div class="recipe-image-wrapper" id=${recipe.id}>
             <button class="recipe-img-btn">
@@ -284,39 +262,35 @@ function displayRecipeList() {
             <p class="recipe-name">${recipe.name}</p>
         </div>
       `)
-
       if (!user.recipesToCook.includes(recipe)) {
-            document.getElementById(recipe.id).innerHTML += `<button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>`;
-        }
-
-   });
-};
+        document.getElementById(recipe.id).innerHTML += `<button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>`;
+      }
+    });
+  };
 
 function goHome() {
-    hideOn([homeButton]);
+  hideOn([homeButton]);
 
-    recipeHeading.innerText = 'All Recipes';
-    recipeDisplay.innerHTML = "";
+  recipeHeading.innerText = 'All Recipes';
+  recipeDisplay.innerHTML = "";
 
-    displayRecipeList();
-
+  displayRecipeList();
 }
 
 function showRecipeInstructions(event) {
-    hideOn([searchForm, filterForm, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel,  searchLabel, filterLabel]);
-    hideOff([favoriteButton, homeButton]);
+  hideOn([searchForm, filterForm, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel,  searchLabel, filterLabel]);
+  hideOff([favoriteButton, homeButton]);
 
+  const recipeId = parseInt(event.target.getAttribute("data-recipeId"));
+  const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === recipeId);
 
-    const recipeId = parseInt(event.target.getAttribute("data-recipeId"));
-    const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === recipeId);
+  selectedRecipe.buildIngredientsNeeded(ingredientsInfo);
 
-    selectedRecipe.buildIngredientsNeeded(ingredientsInfo);
+  const totalCost = selectedRecipe.getTotalCost();
 
-    const totalCost = selectedRecipe.getTotalCost();
-
-    recipeDisplay.innerHTML = "";
-    recipeHeading.innerText = `${selectedRecipe.name}`;
-    recipeDisplay.innerHTML = (`
+  recipeDisplay.innerHTML = "";
+  recipeHeading.innerText = `${selectedRecipe.name}`;
+  recipeDisplay.innerHTML = (`
         <div class="selected-recipe-display">
         <img class="selected-recipe-image" src=${selectedRecipe.image} alt=${selectedRecipe.name}>
         <section class="pantry-feedback" id="pantryFeedback"></section>
@@ -335,111 +309,112 @@ function showRecipeInstructions(event) {
     `);
 
     if (!user.recipesToCook.includes(selectedRecipe)) {
-        document.getElementById(selectedRecipe.id).innerHTML += `<button class="favorite-button" data-favoriteRecipe=${selectedRecipe.id} data-instructionDisplay="instructionDisplay">Favorite</button>`
+      document.getElementById(selectedRecipe.id).innerHTML +=
+      `<button class="favorite-button" data-favoriteRecipe=${selectedRecipe.id} data-instructionDisplay="instructionDisplay">Favorite</button>`
     }
 
     if (user.recipesToCook.includes(selectedRecipe)) {
-        showIngredientsNeeded(selectedRecipe);
+      showIngredientsNeeded(selectedRecipe);
     }
 
     selectedRecipe.instructions.forEach((instruction) => {
-        document.querySelector("#recipeInstructions").innerHTML += (`
-            <li class="instructions">${instruction.instruction}</li>
+      document.querySelector("#recipeInstructions").innerHTML += (`
+        <li class="instructions">${instruction.instruction}</li>
         `);
-    });
+      });
 
     selectedRecipe.ingredientsNeeded.forEach((ingredient) => {
         document.querySelector("#ingredientsList").innerHTML += (`
-            <li class="ingredient">${ingredient.name}</li>
+          <li class="ingredient">${ingredient.name}</li>
         `);
-    });
+      });
 };
 
 function filterRecipeTag(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    hideOff([homeButton]);
+  hideOff([homeButton]);
 
-    const inputValue = recipeTagInput.value.toLowerCase();
-    const requestedRecipes = recipeRepository.findRecipeByTag(inputValue);
+  const inputValue = recipeTagInput.value.toLowerCase();
+  const requestedRecipes = recipeRepository.findRecipeByTag(inputValue);
 
-    recipeHeading.innerText = 'Filtered Recipes by Tag';
-    recipeDisplay.innerHTML = "";
+  recipeHeading.innerText = 'Filtered Recipes by Tag';
+  recipeDisplay.innerHTML = "";
 
-    if (requestedRecipes === `Sorry, no recipe with ${inputValue}.`) {
-        return recipeHeading.innerText = requestedRecipes;
-    }
+  if (requestedRecipes === `Sorry, no recipe with ${inputValue}.`) {
+    return recipeHeading.innerText = requestedRecipes;
+  }
 
-    requestedRecipes.forEach((recipe) => {
-    recipeDisplay.innerHTML += (`
-        <div class="recipe-image-wrapper">
-          <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
-          <p class="recipe-name">${recipe.name}</p>
-          <button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>
-        </div>
-      `)
-   });
+  requestedRecipes.forEach((recipe) => {
+  recipeDisplay.innerHTML += (`
+    <div class="recipe-image-wrapper">
+      <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
+      <p class="recipe-name">${recipe.name}</p>
+      <button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>
+    </div>
+    `)
+  });
 }
 
 function searchRecipeName(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    hideOff([homeButton]);
+  hideOff([homeButton]);
 
-    const inputValue = recipeNameInput.value.split(' ').map(word => {
+  const inputValue = recipeNameInput.value.split(' ').map(word => {
     return word.split('').map((letter, index) => {
-        if (!index) {
-            letter = letter.toUpperCase()
-        } else {
-            letter = letter.toLowerCase()
-        }
+      if (!index) {
+        letter = letter.toUpperCase()
+      } else {
+        letter = letter.toLowerCase()
+      }
 
-        return letter
+      return letter
     }).join('');
 
-   }).join(' ');
+  }).join(' ');
 
-    const requestedRecipes = recipeRepository.findRecipeByName(inputValue);
+  const requestedRecipes = recipeRepository.findRecipeByName(inputValue);
 
-    recipeHeading.innerText = 'Filtered Recipes by Name';
-    recipeDisplay.innerHTML = "";
+  recipeHeading.innerText = 'Filtered Recipes by Name';
+  recipeDisplay.innerHTML = "";
 
-    if (requestedRecipes === `Sorry, no recipe named ${inputValue}.`) {
-        return recipeHeading.innerText = requestedRecipes;
-    }
+  if (requestedRecipes === `Sorry, no recipe named ${inputValue}.`) {
+    return recipeHeading.innerText = requestedRecipes;
+  }
 
-    requestedRecipes.forEach((recipe) => {
-    recipeDisplay.innerHTML += (`
-        <div class="recipe-image-wrapper">
-          <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
-          <p class="recipe-name">${recipe.name}</p>
-          <button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>
-        </div>
-      `)
+  requestedRecipes.forEach((recipe) => {
+  recipeDisplay.innerHTML += (`
+    <div class="recipe-image-wrapper">
+      <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
+      <p class="recipe-name">${recipe.name}</p>
+      <button class="favorite-button" data-favoriteRecipe=${recipe.id}>Favorite</button>
+      </div>
+    `)
    });
  }
 
  function filterFavoriteRecipesByTag(event) {
-    event.preventDefault();
+   event.preventDefault();
 
-    hideOff([homeButton]);
+   hideOff([homeButton]);
 
-    const inputValue = recipeFavoriteTagInput.value.toLowerCase();
-    const requestedRecipes = user.filterRecipesToCookByTag(inputValue);
+   const inputValue = recipeFavoriteTagInput.value.toLowerCase();
+   const requestedRecipes = user.filterRecipesToCookByTag(inputValue);
 
-    recipeHeading.innerText = 'Filtered Favorite Recipes by Tag';
-    recipeDisplay.innerHTML = "";
+   recipeHeading.innerText = 'Filtered Favorite Recipes by Tag';
+   recipeDisplay.innerHTML = "";
 
-    if (requestedRecipes === `Sorry, no recipe with ${inputValue}.`) {
-        return recipeHeading.innerText = requestedRecipes;
-    }
+   if (requestedRecipes === `Sorry, no recipe with ${inputValue}.`) {
+     return recipeHeading.innerText = requestedRecipes;
+   }
 
-    requestedRecipes.forEach((recipe) => {
-    recipeDisplay.innerHTML += (`
-        <div class="recipe-image-wrapper">
-            <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
-            <p class="recipe-name">${recipe.name}</p>
-        </div>
+   requestedRecipes.forEach((recipe) => {
+     recipeDisplay.innerHTML += (`
+       <div class="recipe-image-wrapper">
+         <img class="recipe-image" data-recipeId=${recipe.id} data-recipeDisplay="filtered" src=${recipe.image} alt=${recipe.name}>
+         <p class="recipe-name">${recipe.name}</p>
+         </div>
       `)
    });
  }
@@ -450,15 +425,15 @@ function searchRecipeName(event) {
    hideOff([homeButton]);
 
    const inputValue = recipeFavNameInput.value.split(' ').map(word => {
-    return word.split('').map((letter, index) => {
-        if (!index) {
-            letter = letter.toUpperCase()
-        } else {
-            letter = letter.toLowerCase()
-        }
+     return word.split('').map((letter, index) => {
+       if (!index) {
+         letter = letter.toUpperCase()
+       } else {
+         letter = letter.toLowerCase()
+       }
 
-        return letter
-    }).join('');
+       return letter
+     }).join('');
 
    }).join(' ');
 
