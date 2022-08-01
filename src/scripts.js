@@ -122,7 +122,6 @@ function addIngredientsToPantry(id) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(post)
     })
-    .then(response => response.json())
     .then(() => {
       if (index === (postObjs.length - 1)) {
         getAllData('users')
