@@ -123,8 +123,8 @@ function addIngredientsToPantry(id) {
           const newUser = new User(userInfo.find(freshUser => freshUser.id === user.id));
           user.pantry.ingredients = newUser.pantry.ingredients;
           document.querySelector("#pantryFeedback").innerHTML = '';
+          document.querySelector('#addToPantry').remove();
           showIngredientsNeeded(selectedRecipe);
-          document.querySelector('#addToPantry').classList.add('hidden');
         })
       }
     })
@@ -228,16 +228,15 @@ function showIngredientsNeeded(selectedRecipe) {
 }
 
 function showFavorites() {
-  hideOn([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
-  hideOff([filterFavoriteForm, favSearchForm, homeButton, favSearchLabel, filterFavoriteLabel]);
-
-  homeButton.classList.remove('hidden');
-  homeButton.classList.add('favorite');
-  recipeHeading.innerText = 'Favorite Recipes';
-  recipeDisplay.innerHTML = "";
-  user.recipesToCook.forEach((recipe) => {
-    recipeDisplay.innerHTML += (`
-      <div class="recipe-image-wrapper" id=${recipe.id}>
+    hideOn([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
+    hideOff([filterFavoriteForm, favSearchForm, homeButton, favSearchLabel, filterFavoriteLabel, pantryButton]);
+    homeButton.classList.remove('hidden');
+    homeButton.classList.add('favorite');
+    recipeHeading.innerText = 'Favorite Recipes';
+    recipeDisplay.innerHTML = "";
+    user.recipesToCook.forEach((recipe) => {
+        recipeDisplay.innerHTML += (`
+            <div class="recipe-image-wrapper" id=${recipe.id}>
             <button class="recipe-img-btn">
                 <img class="recipe-image" data-recipeId=${recipe.id} src=${recipe.image} alt="View ${recipe.name} instructions">
             </button>
@@ -249,9 +248,8 @@ function showFavorites() {
 };
 
 function displayRecipeList() {
-  hideOff([searchForm, filterForm, favoriteButton, searchLabel, filterLabel]);
+  hideOff([searchForm, filterForm, favoriteButton, searchLabel, filterLabel, pantryButton]);
   hideOn([homeButton, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel]);
-
   recipeDisplay.innerHTML = "";
   recipeRepository.recipeList.forEach((recipe) => {
     recipeDisplay.innerHTML += (`
@@ -270,7 +268,9 @@ function displayRecipeList() {
 
 function goHome() {
   hideOn([homeButton]);
-
+  hideOff([pantryButton]);
+  recipeHeading.innerText = 'All Recipes';
+  recipeDisplay.innerHTML = "";
   recipeHeading.innerText = 'All Recipes';
   recipeDisplay.innerHTML = "";
 
@@ -279,8 +279,7 @@ function goHome() {
 
 function showRecipeInstructions(event) {
   hideOn([searchForm, filterForm, filterFavoriteForm, favSearchForm, favSearchLabel, filterFavoriteLabel,  searchLabel, filterLabel]);
-  hideOff([favoriteButton, homeButton]);
-
+  hideOff([favoriteButton, homeButton, pantryButton]);
   const recipeId = parseInt(event.target.getAttribute("data-recipeId"));
   const selectedRecipe = recipeRepository.recipeList.find(recipe => recipe.id === recipeId);
 
@@ -332,9 +331,7 @@ function showRecipeInstructions(event) {
 
 function filterRecipeTag(event) {
   event.preventDefault();
-
-  hideOff([homeButton]);
-
+  hideOff([homeButton, pantryButton]);
   const inputValue = recipeTagInput.value.toLowerCase();
   const requestedRecipes = recipeRepository.findRecipeByTag(inputValue);
 
@@ -358,9 +355,7 @@ function filterRecipeTag(event) {
 
 function searchRecipeName(event) {
   event.preventDefault();
-
-  hideOff([homeButton]);
-
+  hideOff([homeButton, pantryButton]);
   const inputValue = recipeNameInput.value.split(' ').map(word => {
     return word.split('').map((letter, index) => {
       if (!index) {
@@ -396,9 +391,7 @@ function searchRecipeName(event) {
 
  function filterFavoriteRecipesByTag(event) {
    event.preventDefault();
-
-   hideOff([homeButton]);
-
+   hideOff([homeButton, pantryButton]);
    const inputValue = recipeFavoriteTagInput.value.toLowerCase();
    const requestedRecipes = user.filterRecipesToCookByTag(inputValue);
 
@@ -422,7 +415,7 @@ function searchRecipeName(event) {
  function searchFavRecipeListByName(event) {
    event.preventDefault();
 
-   hideOff([homeButton]);
+   hideOff([homeButton, pantryButton]);
 
    const inputValue = recipeFavNameInput.value.split(' ').map(word => {
      return word.split('').map((letter, index) => {
